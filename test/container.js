@@ -114,6 +114,17 @@ suite('container', function() {
       }).catch(done);
     });
 
+    test('throw error when dependency is not found', function() {
+      var container = this.container;
+      assert.throw(function() {
+        container.register({
+          name: 'willFail',
+          dependencies: ['notHere'],
+          define: function() { return 'ok'; }
+        });
+      }, /dependency error/i);
+    });
+
   });
 
   suite('register npm module', function() {
@@ -127,24 +138,6 @@ suite('container', function() {
         assert.equal(fsModule, fs);
         done();
       }).catch(done);
-    });
-
-    test('test perso', function() {
-      var container = this.container;
-      Promise.spawn(function* () {
-        container.register({
-          name: 'config',
-          define: function() {
-            return {
-              db: {url: 'mongodb://localhost:27017/myapp'}
-            }
-          }
-        });
-
-        var dbUrl = (yield container.get('config')).db.url;
-        console.log(dbUrl);
-
-      });
     });
 
   });
