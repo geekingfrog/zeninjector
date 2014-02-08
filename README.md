@@ -62,9 +62,7 @@ Sometimes, you want to add an already existing object to the container, for exam
 an NPM module or something from another library. There is a shortcut for this:
 
 ```javascript
-Promise.spawn(function* () {
-  var fs = yield container.registerAndExport('fs', require('fs'));
-});
+var fs = container.registerAndExport('fs', require('fs'));
 ```
 
 # Run tests

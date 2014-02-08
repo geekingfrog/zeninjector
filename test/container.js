@@ -120,22 +120,11 @@ suite('container', function() {
 
   });
 
-  test('can register existing objects', function(done) {
+  test('can register existing objects', function() {
     var container = this.container;
-    // var timeout = setTimeout(function() {
-    //   assert.fail('Should immediately resolve the module');
-    // }, 10);
 
     var fs = require('fs');
-    Promise.spawn(function* () {
-      var fsModule = yield container.registerAndExport('fs', fs);
-      assert.equal(fsModule, fs);
-      done();
-    }).catch(function(err) {
-      console.log(err);
-      done(err);
-    });
-
+    assert.equal(container.registerAndExport('fs', fs), fs);
   });
 
 });
