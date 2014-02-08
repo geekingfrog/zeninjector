@@ -11,24 +11,21 @@ For this library, `node >= 0.11.9` is required and the application should be run
 var container = new require('zeninjector');
 
 // register a module
-container.register({
-  name: 'config',
-  define: function() {
-    return {
-      db: {url: 'mongodb://localhost:27017/myapp'}
-    }
+container.register('config', function() {
+  return {
+    db: {url: 'mongodb://localhost:27017/myapp'}
   }
 });
 
 // get the module
 var Promise = require('bluebird');
 Promise.spawn(function* () {
-  var dbUrl = (yield container.get('config')).db.url;
+  var dbUrl = (yield container.resolve('config')).db.url;
 });
 ```
 
 ## Registering a module
-A module is an object with a unique `name`, an optional array of `dependencies`, and a function `define` which returns the module. The dependencies are lazily loaded, so `define` will only be called when it is needed. It is similar to [require.js](http://requirejs.org/) syntax.
+A module is an object with a unique `name`, an optional array of `dependencies`, and a function `define` which returns the module. The dependencies are lazily loaded, so `define` will only be called when it is needed. It is similar to [angularJS DI system](http://docs.angularjs.org/guide/di) or [require.js](http://requirejs.org/) syntax.
 
 **More complex example**
 
@@ -36,25 +33,29 @@ A module is an object with a unique `name`, an optional array of `dependencies`,
 var Promise = require('bluebird');
 var MongoClient = require('mongodb').MongoClient;
 
-var dbModule = {
-  name: 'db',
-  dependencies: ['config']
-  define: function(config) {
-    var connect = Promise.promisify(MongoClient.connect, MongoClient);
-    return connect(config.db.url);
-  }
-};
-container.register(dbModule);
+container.register('db', function(config) {
+  var connect = Promise.promisify(MongoClient.connect, MongoClient);
+  return connect(config.db.url);
+});
 
 Promise.spawn(function* () {
   try {
-    var db = yield container.get('db'); // connect to the db here
+    var db = yield container.resolve('db'); // connect to the db here
     // ... use the db object here
   } catch(err) {
     console.error('cannot connect to db', err);
   }
 });
 
+```
+
+If you prefer, dependencies can also be explicitely written out:
+
+```javascript
+container.register('db', ['config', function(config) {
+  var connect = Promise.promisify(MongoClient.connect, MongoClient);
+  return connect(config.db.url);
+}]);
 ```
 
 # Run tests

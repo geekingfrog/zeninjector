@@ -6,27 +6,6 @@ Promise.onPossiblyUnhandledRejection(function(error){
   // ignore promises which don't handle errors
 });
 
-var coTest = function(name, fn) {
-  var that = this;
-  test(name, function(done) {
-    Promise.coroutine(fn.bind(that))(done).catch(function(err) {
-      done(err);
-    });
-  });
-}
-
-var shouldThrow = function(fn, done) {
-  Promise.spawn(function* () {
-    try {
-      yield fn();
-      done(new Error('Should throw error'));
-    } catch(e) {
-      console.log(e);
-      done(); 
-    }
-  });
-};
-
 suite('container', function() {
   setup(function() {
     this.container = new Container();
@@ -37,41 +16,40 @@ suite('container', function() {
   });
 
   suite('register throws error', function() {
-    suite('when invalid object is passed', function() {
 
-      test('no name', function() {
-        var container = this.container;
-        assert.throw(function() {
-          container.register({});
-        }, /must have a name/i);
-      });
-
-      test('no `define` function', function() {
-        var container = this.container;
-        assert.throw(function() {
-          container.register({name: 'willFail'});
-        }, /must have a `define` function/i);
-      });
-
-      test('already registered', function() {
-        var container = new Container();
-        container.register({ name: 'first', define: function() {} });
-        assert.throw(function() {
-          container.register({ name: 'first', define: function() {} });
-        }, /already registered/i);
-      });
-
+    test('with no arguments', function() {
+      var container = this.container;
+      assert.throw(function() {
+        container.register({});
+      }, /must have a name/i);
     });
+
+    test('with no function', function() {
+      var container = this.container;
+      assert.throw(function() {
+        container.register('foo');
+      }, /must give a function/i);
+    });
+
+    test('already registered', function() {
+      var container = new Container();
+      container.register('first', function() {});
+      assert.throw(function() {
+        container.register('first', function() {});
+      }, /already registered/i);
+    });
+
+
   });
 
-  suite('register/get', function() {
+  suite('register/resolve', function() {
 
-    test('`get` throws error if module is not registered', function(done) {
+    test('`resolve` throws error if module is not registered', function(done) {
       var container = this.container;
       Promise.spawn(function* () {
         try {
-          yield container.get('doenstExist');
-          done(new Error('get should throw an error'));
+          yield container.resolve('doesntExist');
+          done(new Error('resolve should throw an error'));
         } catch(err) {
           if(/no module (:?.*?) registered/i.test(err.toString())) {
             done();
@@ -85,8 +63,8 @@ suite('container', function() {
     test('module with no dependencies', function(done) {
       var container = this.container;
       Promise.spawn(function* () {
-        container.register({ name: 'noDep', define: function() { return 'nodep'; } });
-        var result = yield container.get('noDep');
+        container.register('noDep', function() { return 'nodep'; });
+        var result = yield container.resolve('noDep');
         assert.equal(result, 'nodep');
         done();
       }).catch(done);
@@ -94,50 +72,68 @@ suite('container', function() {
 
     test('module with a dependency', function(done) {
       var container = this.container;
-      var o1 = {
-        name: 'o1',
-        define: function() { return 'o1'; }
-      };
 
-      var o2 = {
-        name: 'o2',
-        dependencies: ['o1'],
-        define: function(o1) { return o1+' augmented'; }
-      };
+      var o1 = function() { return 'o1'; }
+      var o2 = function(o1) { return o1+' augmented'; }
 
       Promise.spawn(function* () {
-        container.register(o1);
-        container.register(o2);
-        var o2Module = yield container.get(o2.name);
+        container.register('o1', o1);
+        container.register('o2', o2);
+        var o2Module = yield container.resolve('o2');
         assert.equal(o2Module, 'o1 augmented');
         done();
       }).catch(done);
     });
 
-    test('throw error when dependency is not found', function() {
+    test('module with an explicit dependency', function(done) {
       var container = this.container;
-      assert.throw(function() {
-        container.register({
-          name: 'willFail',
-          dependencies: ['notHere'],
-          define: function() { return 'ok'; }
-        });
-      }, /dependency error/i);
+
+      var o1 = function() { return 'o1'; }
+      var o2 = function(foo) { return foo+' augmented'; }
+
+      Promise.spawn(function* () {
+        container.register('o1', o1);
+        container.register('o2', ['o1', o2]);
+        var o2Module = yield container.resolve('o2');
+        assert.equal(o2Module, 'o1 augmented');
+        done();
+      }).catch(done);
     });
+
+    test('throw error when dependency is not found', function(done) {
+      var container = this.container;
+      container.register('willFail', function(notHere) {return 'ok'; });
+      Promise.spawn(function* () {
+        try {
+          yield container.resolve('willFail');
+          done(new Error('resolve should throw an error'));
+        } catch(err) {
+          if(/dependency not found/i.test(err.toString())) {
+            done();
+          } else {
+            done(err);
+          }
+        }
+      }).catch(done);
+    });
+
 
   });
 
-  suite('register npm module', function() {
+  test('can register existing objects', function(done) {
+    var container = this.container;
+    // var timeout = setTimeout(function() {
+    //   assert.fail('Should immediately resolve the module');
+    // }, 10);
 
-    test('shortcut to register npm modules', function(done) {
-      var fs = require('fs');
-      var container = this.container;
-      container.registerNpm('fs');
-      Promise.spawn(function* () {
-        var fsModule = yield container.get('fs');
-        assert.equal(fsModule, fs);
-        done();
-      }).catch(done);
+    var fs = require('fs');
+    Promise.spawn(function* () {
+      var fsModule = yield container.registerAndExport('fs', fs);
+      assert.equal(fsModule, fs);
+      done();
+    }).catch(function(err) {
+      console.log(err);
+      done(err);
     });
 
   });
