@@ -58,5 +58,14 @@ container.register('db', ['config', function(config) {
 }]);
 ```
 
+Sometimes, you want to add an already existing object to the container, for example
+an NPM module or something from another library. There is a shortcut for this:
+
+```javascript
+Promise.spawn(function* () {
+  var fs = yield container.registerAndExport('fs', require('fs'));
+});
+```
+
 # Run tests
 `npm test`, or `mocha --harmony --ui tdd --reporter spec` if you have mocha installed as a global module.
