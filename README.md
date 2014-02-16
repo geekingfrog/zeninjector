@@ -17,6 +17,12 @@ container.register('config', function() {
   }
 });
 
+// or, if the module has no dependency, you can also
+// do that
+container.registerAndExport('config', {
+  db: { url: 'mongodb://localhost:27017/myapp' }
+});
+
 // get the module
 var Promise = require('bluebird');
 Promise.spawn(function* () {
