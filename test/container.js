@@ -127,4 +127,42 @@ suite('container', function() {
     assert.equal(container.registerAndExport('fs', fs), fs);
   });
 
+  suite('circular dependencies', function() {
+
+    test('false positive', function(done) {
+      var container = this.container;
+      Promise.spawn(function* () {
+        container.registerAndExport('a', 'a');
+        container.register('b', function(a) {
+          return a+'b';
+        });
+        container.register('c', function(a, b) {
+          return a+b+'c';
+        });
+        yield container.resolve('c');
+        done();
+      }).catch(done);
+    });
+
+    test('throw error', function(done) {
+      var container = this.container;
+      Promise.spawn(function* () {
+        // a -> b -> c -> a
+        container.register('a', function(c) { return c+'a'; });
+        container.register('b', function(a) { return a+'b'; });
+        container.register('c', function(b) { return b+'c'; });
+
+        yield container.resolve('a');
+        done(new Error('Should throw an error'));
+      }).catch(function(err) {
+        if(/circular dependency/i.test(String(err))) {
+          done();
+        } else {
+          done(err);
+        }
+      });
+    });
+
+  });
+
 });
