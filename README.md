@@ -73,3 +73,6 @@ var fs = container.registerAndExport('fs', require('fs'));
 
 # Run tests
 `npm test`, or `mocha --harmony --ui tdd --reporter spec` if you have mocha installed as a global module.
+
+# License
+MIT
