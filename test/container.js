@@ -45,116 +45,89 @@ suite('container', function() {
   suite('register/resolve', function() {
 
     test('`resolve` throws error if module is not registered', function(done) {
-      var container = this.container;
-      Promise.coroutine(function* () {
-        try {
-          yield container.resolve('doesntExist');
-          done(new Error('resolve should throw an error'));
-        } catch(err) {
-          if(/no module (:?.*?) registered/i.test(err.toString())) {
-            done();
-          } else {
-            done(err);
-          }
+      this.container.resolve('doesntExist').done(function() {
+        done(new Error('resolve should throw an error'));
+      }, function(err) {
+        if(/no module (:?.*?) registered/i.test(err.toString())) {
+          done();
+        } else {
+          done(err);
         }
-      })().catch(done);
+      });
     });
 
     test('module with no dependencies', function(done) {
-      var container = this.container;
-      Promise.coroutine(function* () {
-        container.register('noDep', function() { return 'nodep'; });
-        var result = yield container.resolve('noDep');
+      this.container.register('noDep', function() { return 'nodep'; });
+      this.container.resolve('noDep').done(function(result) {
         assert.equal(result, 'nodep');
         done();
-      })().catch(done);
+      });
     });
 
     test('module with a dependency', function(done) {
-      var container = this.container;
-
       var o1 = function() { return 'o1'; }
       var o2 = function(o1) { return o1+' augmented'; }
-
-      Promise.coroutine(function* () {
-        container.register('o1', o1);
-        container.register('o2', o2);
-        var o2Module = yield container.resolve('o2');
+      this.container.register('o1', o1);
+      this.container.register('o2', o2);
+      this.container.resolve('o2').done(function(o2Module) {
         assert.equal(o2Module, 'o1 augmented');
         done();
-      })().catch(done);
+      });
+
     });
 
     test('module with an explicit dependency', function(done) {
-      var container = this.container;
-
       var o1 = function() { return 'o1'; }
       var o2 = function(foo) { return foo+' augmented'; }
-
-      Promise.coroutine(function* () {
-        container.register('o1', o1);
-        container.register('o2', ['o1', o2]);
-        var o2Module = yield container.resolve('o2');
+      this.container.register('o1', o1);
+      this.container.register('o2', ['o1', o2]);
+      this.container.resolve('o2').done(function(o2Module) {
         assert.equal(o2Module, 'o1 augmented');
         done();
-      })().catch(done);
+      });
     });
 
     test('throw error when dependency is not found', function(done) {
-      var container = this.container;
-      container.register('willFail', function(notHere) {return 'ok'; });
-      Promise.coroutine(function* () {
-        try {
-          yield container.resolve('willFail');
-          done(new Error('resolve should throw an error'));
-        } catch(err) {
-          if(/dependency not found/i.test(err.toString())) {
-            done();
-          } else {
-            done(err);
-          }
-        }
-      })().catch(done);
+      this.container.register('willFail', function(notHere) {return 'ok'; });
+      this.container.resolve('willFail').then(function() {;
+        done(new Error('resolve should throw an error'));
+      }).catch(function(err) {
+        done();
+      });
     });
 
 
   });
 
   test('can register existing objects', function() {
-    var container = this.container;
-
     var fs = require('fs');
-    assert.equal(container.registerAndExport('fs', fs), fs);
+    assert.equal(this.container.registerAndExport('fs', fs), fs);
   });
 
   suite('circular dependencies', function() {
 
     test('false positive', function(done) {
-      var container = this.container;
-      Promise.coroutine(function* () {
-        container.registerAndExport('a', 'a');
-        container.register('b', function(a) {
-          return a+'b';
-        });
-        container.register('c', function(a, b) {
-          return a+b+'c';
-        });
-        yield container.resolve('c');
+      this.container.registerAndExport('a', 'a');
+      this.container.register('b', function(a) {
+        return a+'b';
+      });
+      this.container.register('c', function(a, b) {
+        return a+b+'c';
+      });
+
+      this.container.resolve('c').done(function() {
         done();
-      })().catch(done);
+      });
     });
 
     test('throw error', function(done) {
-      var container = this.container;
-      Promise.coroutine(function* () {
-        // a -> b -> c -> a
-        container.register('a', function(c) { return c+'a'; });
-        container.register('b', function(a) { return a+'b'; });
-        container.register('c', function(b) { return b+'c'; });
-
-        yield container.resolve('a');
+      // a -> b -> c -> a
+      this.container.register('a', function(c) { return c+'a'; });
+      this.container.register('b', function(a) { return a+'b'; });
+      this.container.register('c', function(b) { return b+'c'; });
+      this.container.resolve('a').done(function() {
         done(new Error('Should throw an error'));
-      })().catch(function(err) {
+      }, function(err) {
         if(/circular dependency/i.test(String(err))) {
           done();
         } else {

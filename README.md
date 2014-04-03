@@ -1,9 +1,6 @@
 # ZenInjector
 
-A simple library for dependency enjection using es6's generators.
-
-# Generators inside /!\
-For this library, `node >= 0.11.9` is required and the application should be run with the flag `--harmony`.
+A simple library for dependency injection with promises.
 
 # Usage
 
@@ -24,9 +21,9 @@ container.registerAndExport('config', {
 });
 
 // get the module
-var Promise = require('bluebird');
-Promise.spawn(function* () {
-  var dbUrl = (yield container.resolve('config')).db.url;
+container.resolve('config').then(function(config) {
+  var dbUrl = config.db.url;
+  // do something with it
 });
 ```
 
@@ -36,7 +33,6 @@ A module is an object with a unique `name`, an optional array of `dependencies`,
 **More complex example**
 
 ```javascript
-var Promise = require('bluebird');
 var MongoClient = require('mongodb').MongoClient;
 
 container.register('db', function(config) {
@@ -44,15 +40,11 @@ container.register('db', function(config) {
   return connect(config.db.url);
 });
 
-Promise.spawn(function* () {
-  try {
-    var db = yield container.resolve('db'); // connect to the db here
-    // ... use the db object here
-  } catch(err) {
-    console.error('cannot connect to db', err);
-  }
+container.resolve('db').then(function(db) { // connect to the db here
+  // ... use the db object here
+}, function onError(err) {
+  console.error('cannot connect to db', err);
 });
-
 ```
 
 If you prefer, dependencies can also be explicitely written out:
@@ -71,8 +63,29 @@ an NPM module or something from another library. There is a shortcut for this:
 var fs = container.registerAndExport('fs', require('fs'));
 ```
 
+## With generators
+`resolve` returns a promise so it can easily be used in coroutines. Below is the 'complex' example above rewritten using coroutines.
+
+```javascript
+var Promise = require('bluebird');
+Promise.spawn(function* () {
+  var MongoClient = require('mongodb').MongoClient;
+  container.register('db', function(config) {
+    var connect = Promise.promisify(MongoClient.connect, MongoClient);
+    return connect(config.db.url);
+  });
+
+  try {
+    var db = yield container.register('db');
+    // use the db here
+  } catch(err) {
+    console.error('cannot connect to the db', err);
+  }
+});
+```
+
 # Run tests
-`npm test`, or `mocha --harmony --ui tdd --reporter spec` if you have mocha installed as a global module.
+`npm test`, or `mocha --ui tdd --reporter spec` if you have mocha installed as a global module.
 
 # License
 MIT
