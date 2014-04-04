@@ -96,6 +96,13 @@ suite('container', function() {
       });
     });
 
+    test('do not throw error when `resolve` is called multiple times', function(done) {
+      this.container.register('foo', function() { return 'foo'; });
+      this.container.register('bar', function(foo) { return foo+'bar'; });
+      var first = this.container.resolve('bar');
+      var second = this.container.resolve('bar');
+      Promise.all([first, second]).nodeify(done);
+    });
 
   });
 

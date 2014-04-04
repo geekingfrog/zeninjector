@@ -1,6 +1,6 @@
 {
   "name": "zeninjector",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Simple dependency injection library using es6 generators",
   "main": "lib/container.js",
   "scripts": {
