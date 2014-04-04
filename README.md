@@ -28,7 +28,17 @@ container.resolve('config').then(function(config) {
 ```
 
 ## Registering a module
-A module is an object with a unique `name`, an optional array of `dependencies`, and a function `define` which returns the module. The dependencies are lazily loaded, so `define` will only be called when it is needed. It is similar to [angularJS DI system](http://docs.angularjs.org/guide/di) or [require.js](http://requirejs.org/) syntax.
+`container.register(String name, Function defineFunction)`
+`container.register(String name, [String dependencies..., Function defineFunction)]`
+To register a module, you call `container.register`, gives a name as the first
+argument, and a function which returns
+the module. You can also pass an array as the second argument. In this case, all
+the elements of the array are the name of the dependencies, and the last element
+is the `define` function. This is similar to
+[angularJS DI system](http://docs.angularjs.org/guide/di)
+or [require.js](http://requirejs.org/) syntax.
+The dependencies are lazily loaded, so `define` will only be called when it is
+needed.
 
 **More complex example**
 
