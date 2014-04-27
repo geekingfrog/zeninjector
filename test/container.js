@@ -145,4 +145,26 @@ suite('container', function() {
 
   });
 
+  suite('Inject: manage dependencies', function() {
+
+    test('for anonymous function', function(done) {
+      this.container.register('foo', function() { return 'foo'; });
+      this.container.inject(function(foo) {
+        return foo+foo;
+      }).then(function(res) {
+        assert.equal(res, 'foofoo');
+      }).nodeify(done);
+    });
+
+    test('with explicit dependencies', function(done) {
+      this.container.register('foo', function() { return 'foo'; });
+      this.container.inject(['foo', function(f) {
+        return f+f;
+      }]).then(function(res) {
+        assert.equal(res, 'foofoo');
+      }).nodeify(done);
+    });
+
+  });
+
 });

@@ -73,12 +73,23 @@ an NPM module or something from another library. There is a shortcut for this:
 var fs = container.registerAndExport('fs', require('fs'));
 ```
 
+## With anonymous function
+Sometimes, you don't want to register a module just to execute some code with a given set of dependencies. In this case, you can use `.inject` and the container will resolve the dependencies for you and execute the given function.
+
+```javascript
+container.inject(function add(a, b) {
+  return a+b;
+}).then(function(answer) {
+  console.log('The answer is: %d', answer);
+});
+```
+
 ## With generators
-`resolve` returns a promise so it can easily be used in coroutines. Below is the 'complex' example above rewritten using coroutines.
+`resolve` and `inject` returns a promise so it can easily be used in coroutines. Below is the 'complex' example above rewritten using coroutines.
 
 ```javascript
 var Promise = require('bluebird');
-Promise.spawn(function* () {
+Promise.coroutine(function* () {
   var MongoClient = require('mongodb').MongoClient;
   container.register('db', function(config) {
     var connect = Promise.promisify(MongoClient.connect, MongoClient);
@@ -91,7 +102,7 @@ Promise.spawn(function* () {
   } catch(err) {
     console.error('cannot connect to the db', err);
   }
-});
+})();
 ```
 
 # Run tests
