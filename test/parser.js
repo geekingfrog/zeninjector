@@ -9,7 +9,7 @@ suite('parser', function() {
 
     matches.then(function(matches) {
       var names = matches.map(function(m) { return m.name; });
-      assert.sameMembers(['a', 'b', 'c', 'd', 'e'], names);
+      assert.sameMembers(['a', 'b', 'c', 'd', 'e', 'g'], names);
       assert.notInclude(matches, 'f');
       done();
     }).catch(done);
@@ -36,6 +36,15 @@ suite('parser', function() {
       modules.forEach(function(m) {
         assert.instanceOf(m.define, Function);
       });
+      done();
+    }).catch(done);
+  });
+
+  test('find module when they directly export a function', function(done) {
+    var modules = parser.extractModulesFromFile('test/files/inlineExports.js');
+    modules.then(function(modules) {
+      var names = modules.map(function(m) { return m.name; });
+      assert.sameMembers(['aPrime', 'bPrime'], names);
       done();
     }).catch(done);
   });

@@ -23,3 +23,6 @@ function d() {};
 function e() {};
 
 function f() {};
+
+//@autoinject
+module.exports = function g() {};
