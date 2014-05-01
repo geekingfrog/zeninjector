@@ -108,7 +108,7 @@ function d() {};
 module.exports.d = d;
 ```
 
-Then, calling `container.scan(['module.js'])` will automatically register all the modules a through d. You can then use them as if you called `container.register('a', function() {/*...*/})` for each of them.
+Then, calling `container.scan(['module.js'])` will automatically register all the modules `a` through `d`. You can then use them as if you called `container.register('a', function() {/*...*/})` for each of them.
 Note that you must export the autoinjected functions for this to work, otherwise you'll get an error.
 
 ## With generators
