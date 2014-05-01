@@ -1,0 +1,2 @@
+//@autoinject
+function foo() {};

@@ -1,14 +1,21 @@
 var Container = require('../lib/container');
 var assert = require('chai').assert;
 var Promise = require('bluebird');
+var path = require('path');
 
 Promise.onPossiblyUnhandledRejection(function(error){
   // ignore promises which don't handle errors
 });
 
+// dummy noop logger here
+var logger = {};
+['trace', 'debug', 'info', 'warn', 'error', 'fatal'].forEach(function(fn) {
+  logger[fn] = function() {}
+});
+
 suite('container', function() {
   setup(function() {
-    this.container = new Container();
+    this.container = new Container({logger: logger});
   });
 
   teardown(function() {
@@ -163,6 +170,26 @@ suite('container', function() {
       }]).then(function(res) {
         assert.equal(res, 'foofoo');
       }).nodeify(done);
+    });
+
+  });
+
+  suite('Scan', function() {
+
+    test('automatically register dependencies', function(done) {
+      var that = this;
+      this.container.scan(['test/files/module.js'])
+      .bind(this)
+      .then(function() {
+        return this.container.resolve('a');
+      })
+      .then(function(a) {
+        assert.ok(a);
+        done();
+      })
+      .catch(function(err) {
+        done(err);
+      });
     });
 
   });

@@ -1,6 +1,6 @@
 {
   "name": "zeninjector",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Simple dependency injection library using es6 generators",
   "main": "lib/container.js",
   "scripts": {
@@ -16,7 +16,11 @@
     "dependency injection"
   ],
   "dependencies": {
-    "bluebird": "~1.2"
+    "bluebird": "~1.2",
+    "glob": "^3.2.9",
+    "split": "^0.3.0",
+    "lodash": "^2.4.1",
+    "grunt": "^0.4.4"
   },
   "devDependencies": {
     "chai": "~1.9.0",
