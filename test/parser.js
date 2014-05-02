@@ -1,6 +1,7 @@
 var parser = require('../lib/parser');
 var path = require('path');
 var assert = require('chai').assert;
+var _ = require('lodash');
 
 suite('parser', function() {
 
@@ -47,6 +48,40 @@ suite('parser', function() {
       assert.sameMembers(['aPrime', 'bPrime'], names);
       done();
     }).catch(done);
+  });
+
+  suite('annotations with parameters', function() {
+
+    test('name can be specified', function(done) {
+      parser.extractInjectedFunctions('test/files/paramAnnotations.js')
+      .then(function(fns) {
+        var bar = _.find(fns, function(f) { return f.name === 'bar'; });
+        assert.equal(bar.exportedName, 'foo');
+        done();
+      }).catch(done);
+    });
+
+    test('dependencies can be specified', function(done) {
+      parser.extractInjectedFunctions('test/files/paramAnnotations.js')
+      .then(function(fns) {
+        var baz = _.find(fns, function(f) { return f.name === 'baz'; });
+        assert.sameMembers(baz.dependencies, ['foo', 'bar']);
+        done();
+      }).catch(done);
+    });
+
+    test('register module accordingly', function(done) {
+      parser.extractModulesFromFile('test/files/paramAnnotations.js')
+      .then(function(matches) {
+        var foobared = _.find(matches, function(m) { return m.name === 'foobared'; });
+        assert.isDefined(foobared, 'understand name param in @autoinject');
+        assert.instanceOf(foobared.define, Array, 'understand dependencies');
+        assert.sameMembers(['foo', 'bar'], foobared.define.slice(0, -1));
+        assert.instanceOf(foobared.define[foobared.define.length-1], Function);
+        done();
+      }).catch(done);
+    });
+
   });
 
 })

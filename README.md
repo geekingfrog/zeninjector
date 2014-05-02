@@ -111,6 +111,15 @@ module.exports.d = d;
 Then, calling `container.scan(['module.js'])` will automatically register all the modules `a` through `d`. You can then use them as if you called `container.register('a', function() {/*...*/})` for each of them.
 Note that you must export the autoinjected functions for this to work, otherwise you'll get an error.
 
+You can specify a different name or different dependencies with the following annotation:
+
+```javascript
+//@autoinject(name=myName;dependencies=foo,bar,baz)
+module.exports = function f(a, b, c) { ... }
+```
+In this case, the container will register the function under the name `myName`
+and inject the dependencies `foo`, `bar` and `baz` instead of `a`, `b` and `c`.
+
 ## With generators
 `resolve` and `inject` returns a promise so it can easily be used in coroutines. Below is the 'complex' example above rewritten using coroutines.
 
