@@ -1,4 +1,5 @@
 # ZenInjector
+[![wercker status](https://app.wercker.com/status/3fbf7f806e16276cbf6e0f6ab2d6aa20/m/ "wercker status")](https://app.wercker.com/project/bykey/3fbf7f806e16276cbf6e0f6ab2d6aa20)
 
 A simple library for dependency injection with promises.
 
