@@ -134,7 +134,7 @@ suite('container', function() {
       });
     });
 
-    test('throw error', function(done) {
+    test('a -> b -> c -> a throws error', function(done) {
       // a -> b -> c -> a
       this.container.register('a', function(c) { return c+'a'; });
       this.container.register('b', function(a) { return a+'b'; });
@@ -142,6 +142,30 @@ suite('container', function() {
       this.container.resolve('a').done(function() {
         done(new Error('Should throw an error'));
       }, function(err) {
+        if(/circular dependency/i.test(String(err))) {
+          done();
+        } else {
+          done(err);
+        }
+      });
+    });
+
+    test('a -> (b, c), b -> c does not throw', function(done) {
+      this.container.register('a', function(b, c) { return 'a'+b+c; });
+      this.container.register('b', function(c) { return 'b'+c; });
+      this.container.register('c', function() { return 'c'; });
+      this.container.resolve('a').then(function() {
+        done();
+      })
+      .catch(done);
+    });
+
+    test('a -> a throw error', function(done) {
+      this.container.register('a', function(a) { return a; });
+      this.container.resolve('a').then(function() {
+        done(new Error('should throw an error'));
+      })
+      .catch(function(err) {
         if(/circular dependency/i.test(String(err))) {
           done();
         } else {
