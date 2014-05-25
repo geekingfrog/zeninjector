@@ -46,16 +46,29 @@ suite('container', function() {
       }, /already registered/i);
     });
 
-
   });
 
   suite('register/resolve', function() {
 
     test('`resolve` throws error if module is not registered', function(done) {
-      this.container.resolve('doesntExist').done(function() {
-        done(new Error('resolve should throw an error'));
-      }, function(err) {
-        if(/no module (:?.*?) registered/i.test(err.toString())) {
+      this.container.resolve('doesntExist').then(function() {
+        done(new Error('Resolve should throw an error'));
+      }).catch(function(err) {
+        if(/missing dependency/i.test(err.toString())) {
+          done();
+        } else {
+          done(err);
+        }
+      });
+    });
+
+    test('`resolve` throws error when deep dependency is missing', function(done) {
+      this.container.register('a', function(b) { return 'a'+b; });
+      this.container.register('b', function(c) { return c+'b' });
+      this.container.resolve('a').then(function() {
+        done(new Error('should throw error'));
+      }).catch(function(err) {
+        if(/missing dependency/i.test(err.toString())) {
           done();
         } else {
           done(err);
