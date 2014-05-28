@@ -50,6 +50,27 @@ suite('parser', function() {
     }).catch(done);
   });
 
+  test('@autoexport works', function(done) {
+    var modules = parser.extractModulesFromFile('test/files/autoexports.js');
+    modules.then(function(modules) {
+      var foo = _.find(modules, function(m) { return m.name === 'foo'; });
+      assert.isDefined(foo, 'Must have a module `foo` exported');
+      assert.propertyVal(foo, 'name', 'foo');
+      assert.isFunction(foo.define);
+      done();
+    }).catch(done);
+  });
+
+  test('@autoexport works with custom name', function(done) {
+    var modules = parser.extractModulesFromFile('test/files/autoexports.js');
+    modules.then(function(modules) {
+      var bar = _.find(modules, function(m) { return m.name === 'bar'; });
+      assert.isDefined(bar, 'Must have a module `bar` exported');
+      done();
+    }).catch(done);
+
+  });
+
   suite('annotations with parameters', function() {
 
     test('name can be specified', function(done) {
