@@ -1,98 +1,196 @@
 # ZenInjector
-[![wercker status](https://app.wercker.com/status/3fbf7f806e16276cbf6e0f6ab2d6aa20/m/ "wercker status")](https://app.wercker.com/project/bykey/3fbf7f806e16276cbf6e0f6ab2d6aa20)
 
-A simple library for dependency injection with promises.
+<a href="https://app.wercker.com/project/bykey/3fbf7f806e16276cbf6e0f6ab2d6aa20"><img alt="Wercker status" src="https://app.wercker.com/status/3fbf7f806e16276cbf6e0f6ab2d6aa20/m/master" align="right"></a>
 
-# Usage
+### A simple library for `zenijnector` injection with promises.
 
+## Dependency what ?
+This library is meant to ease unit testing of your node application. Sometimes you need to mock some standard modules like `fs` or `express`, and more generally, it's hard to mock things when your code is full of `require`.
+Using dependency injection, you create once a container which will manage all the components of your application, and make them available where they are needed.
+
+
+## Use cases
+You should use `zeninjector` when
+
+* You want to be able to do (more) unit tests on your code.
+* You want to integrate into one namespace a lot of components
+* You need to dynamically add components to your code without branching the whole repo.
+
+## Two flavors
+`Zeninjector` can be used programmatically or with annotations.
+
+### Programmatic usage
+**Create** the [IOC](http://en.wikipedia.org/wiki/Inversion_of_control) container:
 ```javascript
-var container = new require('zeninjector');
-
-// register a module
-container.register('config', function() {
-  return {
-    db: {url: 'mongodb://localhost:27017/myapp'}
-  }
-});
-
-// or, if the module has no dependency, you can also
-// do that
-container.registerAndExport('config', {
-  db: { url: 'mongodb://localhost:27017/myapp' }
-});
-
-// get the module
-container.resolve('config').then(function(config) {
-  var dbUrl = config.db.url;
-  // do something with it
-});
+var Zeninjector = require('zeninjector');
+var container = new Zeninjector();
 ```
 
-## Registering a module
-`container.register(String name, Function defineFunction)`
-`container.register(String name, [String dependencies..., Function defineFunction)]`
-To register a module, you call `container.register`, gives a name as the first
-argument, and a function which returns
-the module. You can also pass an array as the second argument. In this case, all
-the elements of the array are the name of the dependencies, and the last element
-is the `define` function. This is similar to
-[angularJS DI system](http://docs.angularjs.org/guide/di)
-or [require.js](http://requirejs.org/) syntax.
-The dependencies are lazily loaded, so `define` will only be called when it is
-needed.
-
-**More complex example**
-
+**Register** a module with some dependencies:
 ```javascript
-var MongoClient = require('mongodb').MongoClient;
-
-container.register('db', function(config) {
-  var connect = Promise.promisify(MongoClient.connect, MongoClient);
-  return connect(config.db.url);
+container.register('myModuleName', function(dep1, dep2) {
+  return dep1+dep2;
 });
 
-container.resolve('db').then(function(db) { // connect to the db here
-  // ... use the db object here
-}, function onError(err) {
-  console.error('cannot connect to db', err);
-});
-```
-
-If you prefer, dependencies can also be explicitely written out:
-
-```javascript
-container.register('db', ['config', function(config) {
-  var connect = Promise.promisify(MongoClient.connect, MongoClient);
-  return connect(config.db.url);
+// alternative syntax
+container.register('myModuleName', ['dep1', 'dep2', function(dep1, dep2) {
+  // with this syntax, you can name the function's arguments whatever you like
+  return dep1+dep2;
 }]);
 ```
 
-Sometimes, you want to add an already existing object to the container, for example
-an NPM module or something from another library. There is a shortcut for this:
-
+**Directly register** a module with no dependency:
 ```javascript
-var fs = container.registerAndExport('fs', require('fs'));
+container.registerAndExport('myConfigObject', {
+  env: 'test',
+  port: 8080
+});
+
+// it works great with `require` too
+container.registerAndExport('Promise', require('bluebird'));
 ```
 
-## With an anonymous function
-Sometimes, you don't want to register a module just to execute some code with a given set of dependencies. In this case, you can use `.inject` and the container will resolve the dependencies for you and execute the given function.
+**Resolve a module** with its dependencies:
+```javascript
+container.resolve('myModuleName').then(function(module) {
+    // here module is equal to `dep1+dep2`
+})
+```
+`Zeninjector#resolve` returns a [bluebird promise]('https://github.com/petkaantonov/bluebird'), thus the need to have a `then`.
+
+**Inject** dependencies to an anonymous function, because sometimes you just want to access some objects once, but still want all the goodness of the IOC.
+```javascript
+container.inject(function(myConfigObject, dep1) {
+  console.log('current env %s, dep1 equals: %s', myConfigObject.env, dep1);
+});
+
+// this also works
+container.inject(['myConfigObject', 'dep1', function(config, dep) {
+  // ...
+}]);
+```
+
+### Annotations
+You still have to **create** the container:
+```javascript
+var Zeninjector = require('zeninjector');
+var container = new Zeninjector();
+```
+
+**Scan** your projects to automatically register all dependencies:
+```
+var scan = container.scan([__dirname+'/lib/**/*.js', __dirname+'/ext/**/*.js']);
+```
+This returns a bluebird promise. Once it's done, you can use `Zeninjector#inject` and `Zeninjector.resolve` to get a reference to your defined objects.
+
+**Define** a module with dependencies:
+```javascript
+//@autoinject
+module.exports.myModuleName = function(dep1, dep2) {
+  return dep1+dep2;
+};
+```
+
+With **custom name** and **custom dependencies**:
+```javascript
+//@autoinject(name=myModuleName; dependencies=dep1,dep2)
+module.exports.thisNameIsIrrelevant = function(a, b) {
+  return a+b;
+};
+```
+This example has exactly the same effect as the previous one.
+
+Automatically **exports** (similar to `Zeninjector#registerAndExport`):
+```javascript
+//@autoexport
+module.exports.myConfigObject = {
+  env: 'test'
+};
+```
+
+## Asynchronous definitions
+If a module needs to do some asynchronous action at construction (connecting to a database for example), instead of returning a javascript object (or function), it has to returns a *Promise*. The resolved value of the promise will be the value of the module when requested by others modules.
 
 ```javascript
-container.inject(function add(a, b) {
-  return a+b;
-}).then(function(answer) {
-  console.log('The answer is: %d', answer);
+// Example of asynchronous definition
+container.register('foo', function() {
+  return Promise.delay(1000).resolve('foo!'); // wait one second before resolving
+});
+container.register('bar', function(foo) {
+  return foo+'bar'; // here `foo` will have the resolved value of 'foo!'
+});
+container.inject(function(bar) {
+  console.log(bar); // output foo!bar after one second.
 });
 ```
 
-## Scanning a whole project
-`container.scan([options,] patterns)` has the same signature as [Grunt globbing patterns](http://gruntjs.com/api/grunt.file#globbing-patterns) and will scan all the javascript files to automatically register dependencies. To take advantage of this powerful feature, you must add a comment on a single line with `@autoinject` just before the function declaration. Some example of how achieve that:
+## With generators
+`resolve` and `inject` returns a promise so it can easily be used in coroutines. Below is the asynchronous example written with generators:
 
 ```javascript
-// file "module.js"
+var Promise = require('bluebird');
+Promise.coroutine(function* () {
+  container.register('foo', function() {
+    return Promise.delay(1000).resolve('foo!'); // wait one second before resolving
+  });
+  
+  container.register('bar', function(foo) {
+    return foo+'bar'; // here `foo` will have the resolved value of 'foo!'
+  });
+  
+  var bar = yield container.resolve(bar);
+  assert(bar === 'foo!bar');
+
+})();
+```
+This example requires node `>=0.11.4` with the flag `--harmony-generators`.
+
+## Running tests
+```
+npm install && npm test
+```
+
+# API
+
+##### `new Zeninjector(Object options)` -> `container`
+The `options` object currently supports:
+
+* `logger` an optional logger (default to the console). The logger must implement the methodes `trace`, `debug`, `info`, `warn`, `error` and `fatal`.
+
+---
+##### `.register(String name, FunctionDefinition)` -> `undefined`
+This function will register the dependency `name`. `FunctionDefinition` can be a function or an array of Strings, with its last element being a function. The array variant is the same as [require.js](http://requirejs.org/docs/api.html#defdep). If only a function is provided, the name of the arguments will be used to fetch the dependencies, same is [angularJS implicit dependencies](https://docs.angularjs.org/guide/di).
+
+When this module is required, the given `FunctionDefinition` function will be called and it's return value will be used as the value of the module `name`. If it returns a promise, the resolved value of the promise will be taken.
+
+---
+##### `.registerAndExport(String name, Any value)` -> `value`
+This is a shorthand to `container.register(name, function() { return value; });`
+
+---
+##### `.resolve(String name)` -> `promise`
+This will activate the `define` function for the dependency with `name`. The returned promise will resolve to the return value of the `define` function.
+
+---
+##### `.inject(FunctionDefinition)` -> `Promise`
+This will invoke the given function with its arguments already resolved.
+
+---
+##### `.scan(Array patterns)` -> `promise`
+Scan takes an array of file glob patterns (or a single string) and returns a promise which resolves when all the files have been scanned.
+Scan will look for `//@autoinject` and `//@autoexport` inside every files, and take the following function's name as the module name. This method allow to manage large project without having to pass around the `container` object and do the registration by yourself.
+
+Annotations can be used to define a custom name for the module and specify dependencies explicitely:
+```
+//@autoinject(name=customName, dependencies=dep1,dep2)
+// dependencies are comma (,) separated
+```
+
+The following patterns are supported to declare your module with annotations:
+```javascript
 module.exports = {
   //@autoinject
-  a: function() { return 'a';}
+  a: function() {}
 }
 
 //@autoinject
@@ -102,71 +200,23 @@ module.exports.b = function() {
 
 //@autoinject
 var c = function() {};
-module.exports.c = c;
 
 //@autoinject
+
 function d() {};
-module.exports.d = d;
+
+//@autoinject
+function e() {};
+// /!\ this will raise an error if you try to require it
+// .scan's promise will be rejected here.
+
+
+function f() {}; // will NOT be exported
+
+//@autoinject
+module.exports = function g() {};
+
 ```
-
-Then, calling `container.scan(['module.js'])` will automatically register all the modules `a` through `d`. You can then use them as if you called `container.register('a', function() {/*...*/})` for each of them.
-Note that you must export the autoinjected functions for this to work, otherwise you'll get an error.
-
-You can specify a different name or different dependencies with the following annotation:
-
-```javascript
-//@autoinject(name=myName;dependencies=foo,bar,baz)
-module.exports = function f(a, b, c) { ... }
-```
-In this case, the container will register the function under the name `myName`
-and inject the dependencies `foo`, `bar` and `baz` instead of `a`, `b` and `c`.
-
-## With generators
-`resolve` and `inject` returns a promise so it can easily be used in coroutines. Below is the 'complex' example above rewritten using coroutines.
-
-```javascript
-var Promise = require('bluebird');
-Promise.coroutine(function* () {
-  var MongoClient = require('mongodb').MongoClient;
-  container.register('db', function(config) {
-    var connect = Promise.promisify(MongoClient.connect, MongoClient);
-    return connect(config.db.url);
-  });
-
-  try {
-    var db = yield container.register('db');
-    // use the db here
-  } catch(err) {
-    console.error('cannot connect to the db', err);
-  }
-})();
-```
-
-# Run tests
-`npm test`, or `mocha --ui tdd --reporter spec` if you have mocha installed as a global module.
-
-# API
-
-`new Container(Object options)` -> `container`
-The `options` object currently only support:
-* `logger` an optional logger (default to the console). The logger must implement the methodes `trace`, `debug`, `info`, `warn`, `error` and `fatal`.
-
----
-`container.register(String name, Function define)` -> `undefined`
-This function will register the dependency `name`. When a module requires this dependency, the given `define` function will be called and it's return value will be used as the value of the module `name`. If the `define` function returns a promise, the resolved value of the promise will be taken.
-
----
-`container.registerAndExport(String name, Any value)` -> `value`
-This is a shorthand to `container.register(name, function() { return value; });`
-
----
-`container.resolve(String name)` -> `promise`
-This will activate the `define` function for the dependency with `name`. The returned promise will resolve to the return value of the `define` function.
-
----
-`container.scan([Object options], Array patterns)` -> `promise`
-Scan takes the same arguments as [`grunt.file.expand`](http://gruntjs.com/api/grunt.file#globbing-patterns) and returns a promise which resolve to `undefined` when all the files have been scanned.
-Scan will look for `//@autoinject` inside every files, and take the following function's name as the module name. This method allow to manage large project without having to pass around the `container` object and do the registration by yourself.
 
 # License
 MIT
