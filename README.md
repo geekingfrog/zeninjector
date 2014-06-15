@@ -208,6 +208,10 @@ When this module is required, the given `FunctionDefinition` function will be ca
 This is a shorthand to `container.register(name, function() { return value; });`
 
 ---
+##### `.isRegistered(String moduleName)` -> `Boolean`
+Return `true` if and only if there is a registered module with the given `moduleName`.
+
+---
 ##### `.resolve(String name)` -> `promise`
 This will activate the `define` function for the dependency with `name`. The returned promise will resolve to the return value of the `define` function.
 

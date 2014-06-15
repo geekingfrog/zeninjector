@@ -90,7 +90,9 @@ suite('container', function() {
     });
 
     test('module with no dependencies', function(done) {
+      assert.isFalse(this.container.isRegistered('noDep'));
       this.container.register('noDep', function() { return 'nodep'; });
+      assert.isTrue(this.container.isRegistered('noDep'));
       this.container.resolve('noDep').done(function(result) {
         assert.equal(result, 'nodep');
         done();
