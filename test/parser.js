@@ -23,8 +23,9 @@ suite('parser', function() {
       done(new Error('Must throw error if autoinjected function is not exported'));
     })
     .catch(function(err) {
-      /not been exported/i.test(err.message) ? done() : done(err);
-    });
+      assert.include(err.message, 'not been exported');
+      assert.include(err.message, 'notExported.js', 'Error message should contains filename');
+    }).nodeify(done);
   });
 
   test('correctly find the modules', function(done) {
