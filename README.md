@@ -2,22 +2,34 @@
 
 <a href="https://app.wercker.com/project/bykey/3fbf7f806e16276cbf6e0f6ab2d6aa20"><img alt="Wercker status" src="https://app.wercker.com/status/3fbf7f806e16276cbf6e0f6ab2d6aa20/m/master" align="right"></a>
 
-### A simple library for `zenijnector` injection with promises.
+### A simple library for dependency injection with support for ES6 generators.
 
 ## Dependency what ?
-This library is meant to ease unit testing of your node application. Sometimes you need to mock some standard modules like `fs` or `express`, and more generally, it's hard to mock things when your code is full of `require`.
+With dependency injection, one doesn't care how to retrieve dependencies as long as they comply with a given interface. This allow you to decouple each components from each others. You don't need to know which implementation of `express` or `fs` you're using.
+This allow easy mocking of objects for testing for example.
 Using dependency injection, you create once a container which will manage all the components of your application, and make them available where they are needed.
 
 
 ## Use cases
 You should use `zeninjector` when
 
-* You want to be able to do (more) unit tests on your code.
+* You want to decouple your components from each others
 * You want to integrate into one namespace a lot of components
 * You need to dynamically add components to your code without branching the whole repo.
+* You want to be able to do (more) unit tests on your code.
+
+## Example
+Below, a typicall example of any node.js program:
+
+```javascript
+// file module1.js
+var dep1 = require('./dep1');
+var dep2 = require('./dep2');
+module.exports.myModuleName = dep1 + dep2;
+```
 
 ## Two flavors
-`Zeninjector` can be used programmatically or with annotations.
+You can rewrite this snippet of code with `zeninjector` using it programmatically or with annotations.
 
 ### Programmatic usage
 **Create** the [IOC](http://en.wikipedia.org/wiki/Inversion_of_control) container:
@@ -109,20 +121,45 @@ module.exports.myConfigObject = {
 ```
 
 ## Asynchronous definitions
-If a module needs to do some asynchronous action at construction (connecting to a database for example), instead of returning a javascript object (or function), it has to returns a *Promise*. The resolved value of the promise will be the value of the module when requested by others modules.
+Let's have a look at an example where you need to connect to a database:
 
 ```javascript
-// Example of asynchronous definition
-container.register('foo', function() {
-  return Promise.delay(1000).resolve('foo!'); // wait one second before resolving
-});
-container.register('bar', function(foo) {
-  return foo+'bar'; // here `foo` will have the resolved value of 'foo!'
-});
-container.inject(function(bar) {
-  console.log(bar); // output foo!bar after one second.
-});
+// file db.js
+var MongoClient = require('mongodb').MongoClient;
+var db;
+module.exports.connect = function connect(callback) {
+  if(db) {
+    process.setImmediate(function() { callback(null, db); });
+  } else {
+      MongoClient.connect("mongodb://localhost:27017/exampleDb", function(err, _db) {
+        db = _db;
+        callback(err, db);
+      });
+  }
+};
 ```
+
+There is a problem here, everytime one wants to connect to the database, `connect` has to be called first and your code ends up in another callback (hello callback hell).
+With `zeninjector`, a module can returns a promise, and the result of this promise will be injected as dependecy:
+
+```javascript
+var MongoClient = require('mongodb').MongoClient;
+
+// @autoinject
+module.exports.db = function(Promise) {
+  // inject a Promise library
+  var connect = Promise.promisify(MongoClient.connect);
+  return connect("mongodb://localhost:27017/exampleDb");
+}
+```
+
+```javascript
+// @autoinject
+module.exports.myOtherModule = function(db) {
+  // db here is the database object ready to be used
+}
+```
+
 
 ## With generators
 `resolve` and `inject` returns a promise so it can easily be used in coroutines. Below is the asynchronous example written with generators:
@@ -130,17 +167,15 @@ container.inject(function(bar) {
 ```javascript
 var Promise = require('bluebird');
 Promise.coroutine(function* () {
-  container.register('foo', function() {
-    return Promise.delay(1000).resolve('foo!'); // wait one second before resolving
-  });
+  yield container.scan('**/*.js'); // scan the db.js file
   
-  container.register('bar', function(foo) {
-    return foo+'bar'; // here `foo` will have the resolved value of 'foo!'
-  });
-  
-  var bar = yield container.resolve(bar);
-  assert(bar === 'foo!bar');
-
+  try {
+    var db = yield container.resolve('db');
+    var foo = db.collection('foo');
+    //...
+  } catch(err) {
+    console.error('Got error:', err);
+  }
 })();
 ```
 This example requires node `>=0.11.4` with the flag `--harmony-generators`.
@@ -220,3 +255,4 @@ module.exports = function g() {};
 
 # License
 MIT
+
