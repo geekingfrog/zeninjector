@@ -193,6 +193,11 @@ The `options` object currently supports:
 * `logger` an optional logger (default to the console). The logger must implement the methodes `trace`, `debug`, `info`, `warn`, `error` and `fatal`.
 
 ---
+##### `.setLogger(Logger logger)` -> `container`
+Set a custom logger after creation. The logger object is expected to have the following functions:
+`trace`, `debug`, `info`, `warn`, `error` and `fatal`;
+
+---
 ##### `.register(String name, FunctionDefinition)` -> `undefined`
 This function will register the dependency `name`. `FunctionDefinition` can be a function or an array of Strings, with its last element being a function. The array variant is the same as [require.js](http://requirejs.org/docs/api.html#defdep). If only a function is provided, the name of the arguments will be used to fetch the dependencies, same is [angularJS implicit dependencies](https://docs.angularjs.org/guide/di).
 

@@ -2,6 +2,8 @@ var Container = require('../lib/container');
 var assert = require('chai').assert;
 var Promise = require('bluebird');
 var path = require('path');
+var _ = require('lodash');
+var sinon = require('sinon');
 
 Promise.onPossiblyUnhandledRejection(function(error){
   // ignore promises which don't handle errors
@@ -22,6 +24,17 @@ suite('container', function() {
     this.container = null;
   });
 
+  test('setting logging', function() {
+    var newLogger = _.clone(logger);
+    sinon.spy(newLogger, 'debug');
+    sinon.spy(logger, 'debug');
+    this.container.setLogger(newLogger);
+
+    this.container.register('a', function() { return 'a'; });
+    sinon.assert.notCalled(logger.debug);
+    sinon.assert.called(newLogger.debug);
+  });
+
   suite('register throws error', function() {
 
     test('with no arguments', function() {
@@ -39,7 +52,7 @@ suite('container', function() {
     });
 
     test('already registered', function() {
-      var container = new Container();
+      var container = this.container;
       container.register('first', function() {});
       assert.throw(function() {
         container.register('first', function() {});
