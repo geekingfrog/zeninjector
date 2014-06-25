@@ -1,6 +1,6 @@
 {
   "name": "zeninjector",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Simple dependency injection library using promises",
   "main": "lib/container.js",
   "scripts": {
@@ -16,11 +16,9 @@
     "dependency injection"
   ],
   "dependencies": {
-    "bluebird": "~1.2",
-    "glob": "^3.2.9",
+    "bluebird": "^2.1",
     "split": "^0.3.0",
     "lodash": "^2.4.1",
-    "grunt": "^0.4.4",
     "multi-glob": "^0.4.0"
   },
   "devDependencies": {
