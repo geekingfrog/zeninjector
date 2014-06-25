@@ -106,4 +106,10 @@ suite('parser', function() {
 
   });
 
+  test('does not require if no annotations', function(done) {
+    // test pass if the file is not required -> returns nothing
+    parser.extractModulesFromFile('test/files/noAnnotations.js')
+    .nodeify(done);
+  });
+
 })
