@@ -191,6 +191,7 @@ npm install && npm test
 The `options` object currently supports:
 
 * `logger` an optional logger (default to the console). The logger must implement the methodes `trace`, `debug`, `info`, `warn`, `error` and `fatal`.
+* `verbose` to add more logs with the level `DEBUG`. Defaults to `false`.
 
 ---
 ##### `.setLogger(Logger logger)` -> `container`
