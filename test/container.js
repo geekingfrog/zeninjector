@@ -24,15 +24,32 @@ suite('container', function() {
     this.container = null;
   });
 
-  test('setting logging', function() {
-    var newLogger = _.clone(logger);
-    sinon.spy(newLogger, 'debug');
-    sinon.spy(logger, 'debug');
-    this.container.setLogger(newLogger);
+  describe('logging', function() {
 
-    this.container.register('a', function() { return 'a'; });
-    sinon.assert.notCalled(logger.debug);
-    sinon.assert.called(newLogger.debug);
+    test('verbose option', function() {
+      sinon.spy(logger, 'debug');
+      var container = new Container({
+        logger: logger,
+        verbose: false
+      });
+      container.register('a', function() { return 'a'; });
+
+      sinon.assert.notCalled(logger.debug);
+      logger.debug.restore();
+    });
+
+    test('custom logging', function() {
+      var newLogger = _.clone(logger);
+      sinon.spy(newLogger, 'debug');
+      sinon.spy(logger, 'debug');
+      this.container.setLogger(newLogger);
+      this.container.options.verbose = true;
+
+      this.container.register('a', function() { return 'a'; });
+      sinon.assert.notCalled(logger.debug);
+      sinon.assert.called(newLogger.debug);
+    });
+
   });
 
   suite('register throws error', function() {
