@@ -104,6 +104,17 @@ suite('parser', function() {
       }).catch(done);
     });
 
+    test('read dependency using module.exports and a name', function(done) {
+      parser.extractModulesFromFile('test/files/issue12.js')
+      .then(function(matches) {
+        assert.lengthOf(matches, 1);
+        var module = matches[0];
+        assert.propertyVal(module, 'name', 'foo');
+        assert.equal(module.define(), 'foo');
+        done();
+      })
+      .catch(done);
+    });
   });
 
   test('does not require if no annotations', function(done) {
